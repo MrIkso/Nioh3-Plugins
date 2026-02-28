@@ -75,7 +75,7 @@ bool InstallGetArchiveInfoFromAssetLoaderHook() {
     return true;
 }
 
-#ifdef _DEBUG
+
 bool InstallRegisterAssetHandlerHook() {
     auto registerAssetHandler = reinterpret_cast<FnRegisterAssetHandler>(
         HookUtils::ScanIDAPattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 83 65 ? 00 48 8D 15", 0, 1, 5));
@@ -88,6 +88,7 @@ bool InstallRegisterAssetHandlerHook() {
     HookLambda(registerAssetHandler, [](void* archiveManager, std::uint32_t assetHash,
                                       IBaseGameAssetHandler* assetHandler) -> bool {
         if (assetHandler) {
+/*
             do {
                 std::string handlerTypeName = assetHandler->GetTypeName();
                 _MESSAGE("--------------------------------");
@@ -100,13 +101,18 @@ bool InstallRegisterAssetHandlerHook() {
                     _MESSAGE("    %d: %s(%08X) %08X", i, fields[i].name, fields[i].nameHash, fields[i].typeFlags);
                 }
             } while (0);
+*/
+            if (g_disableStreamingLoading && assetHash == 0xAD57EBBA) {
+                auto &enableStreaming = *((bool*)assetHandler + 0x14);
+                enableStreaming = false;
+                _MESSAGE("Disable streaming loading for streaming texture");
+            }
         }
-
         return original(archiveManager, assetHash, assetHandler);
     });
     return true;
 }
-#endif
+
 
 }  // namespace
 
@@ -206,12 +212,11 @@ bool InstallHooks() {
         _MESSAGE("Failed to install GetArchiveInfoFromAssetLoader hook");
         return false;
     }
-#ifdef _DEBUG
+
     if (!InstallRegisterAssetHandlerHook()) {
         _MESSAGE("Failed to install RegisterAssetHandlerHook");
         return false;
     }
-#endif
     return true;
 
 }
