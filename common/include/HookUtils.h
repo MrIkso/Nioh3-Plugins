@@ -2,6 +2,8 @@
 #include <safetyhook.hpp>
 #include <Windows.h>
 #include <cstdint>
+#include <optional>
+#include <string_view>
 
 template<typename R, typename ...Args>
 SafetyHookInline CreateHookFunction(R(*target)(Args...), R(*hook)(Args...)) {
@@ -76,6 +78,13 @@ namespace HookUtils {
 	void *GetIATAddr(void* module, const char *searchDllName, const char *searchImportName);
 
 	std::optional<size_t> GetModuleSize(HMODULE module);
+
+	struct ModuleSection {
+		uintptr_t start = 0;
+		size_t size = 0;
+	};
+	std::optional<ModuleSection> GetModuleSectionRange(HMODULE module, std::string_view sectionName);
+	std::optional<ModuleSection> GetModuleTextSectionRange(HMODULE module);
 
 	uintptr_t ScanIDAPattern(std::string_view signature, int32_t offset = 0, int32_t relOffset = 0, int32_t instructionLength = 0);
 }

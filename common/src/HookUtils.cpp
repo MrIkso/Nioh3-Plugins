@@ -1,8 +1,11 @@
 #define NOMINMAX
 #include "HookUtils.h"
 #include "LightningScanner/LightningScanner.hpp"
+#include <algorithm>
+#include <array>
 #include <cstdint>
-
+#include <cstring>
+#include <LogUtils.h>
 namespace HookUtils {
 void *LookupCallee(void *caller, void *callee, bool stopAtCC,
                    size_t maxSearch) {
@@ -65,12 +68,67 @@ std::optional<size_t> GetModuleSize(HMODULE module) {
 	return ntHeaders->OptionalHeader.SizeOfImage;
 }
 
+std::optional<ModuleSection> GetModuleSectionRange(HMODULE module,
+                                                  std::string_view sectionName) {
+  if (module == nullptr || sectionName.empty() ||
+      sectionName.size() > IMAGE_SIZEOF_SHORT_NAME) {
+    return {};
+  }
+
+  auto dosHeader = (PIMAGE_DOS_HEADER)module;
+  if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE) {
+    return {};
+  }
+
+  auto ntHeaders = (PIMAGE_NT_HEADERS)((uintptr_t)dosHeader + dosHeader->e_lfanew);
+  if (ntHeaders->Signature != IMAGE_NT_SIGNATURE) {
+    return {};
+  }
+
+  std::array<char, IMAGE_SIZEOF_SHORT_NAME> targetSectionName{};
+  memcpy(targetSectionName.data(), sectionName.data(), sectionName.size());
+
+  auto section = IMAGE_FIRST_SECTION(ntHeaders);
+  for (WORD i = 0; i < ntHeaders->FileHeader.NumberOfSections; ++i, ++section) {
+    if (memcmp(section->Name, targetSectionName.data(),
+               targetSectionName.size()) != 0) {
+      continue;
+    }
+
+    const auto sectionSize = std::max(static_cast<size_t>(section->Misc.VirtualSize),
+                                      static_cast<size_t>(section->SizeOfRawData));
+    if (sectionSize == 0) {
+      return {};
+    }
+
+    return ModuleSection{
+        .start = reinterpret_cast<uintptr_t>(module) + section->VirtualAddress,
+        .size = sectionSize,
+    };
+  }
+
+  return {};
+}
+
+std::optional<ModuleSection> GetModuleTextSectionRange(HMODULE module) {
+  return GetModuleSectionRange(module, ".text");
+}
+
 uintptr_t ScanIDAPattern(std::string_view signature, int32_t offset, int32_t relOffset, int32_t instructionLength) {
 	using namespace LightningScanner;
 	const auto scanner = Scanner(signature);
-    auto module = GetModuleHandleA(nullptr);
-	auto moduleSize = GetModuleSize(module).value_or(0);
-	auto addr = (uintptr_t)scanner.Find(module, moduleSize).Get<std::byte*>();
+	auto module = GetModuleHandleA(nullptr);
+	void* scanStart = module;
+	size_t scanSize = GetModuleSize(module).value_or(0);
+	if (const auto textSection = GetModuleTextSectionRange(module); textSection.has_value()) {
+		scanStart = reinterpret_cast<void*>(textSection->start);
+		scanSize = textSection->size;
+	}
+	if (scanStart == nullptr || scanSize == 0) {
+		return 0;
+	}
+
+	auto addr = (uintptr_t)scanner.Find(scanStart, scanSize).Get<std::byte*>();
 	if (addr) {
 		addr += offset;
 		if (relOffset > 0 && instructionLength != 0) {

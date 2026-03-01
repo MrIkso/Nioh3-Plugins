@@ -37,7 +37,7 @@ extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginI
     g_enableAssetLoadingLog = ReadIniBool(iniPath, PLUGIN_NAME, "EnableAssetLoadingLog", false);
     _MESSAGE("EnableAssetLoadingLog: %d", g_enableAssetLoadingLog ? 1 : 0);
 
-    g_disableStreamingLoading = ReadIniBool(iniPath, PLUGIN_NAME, "DisableStreamingLoading", true);
+    g_disableStreamingLoading = ReadIniBool(iniPath, PLUGIN_NAME, "DisableStreamingLoading", false);
     _MESSAGE("DisableStreamingLoading: %d", g_disableStreamingLoading ? 1 : 0);
 
     g_modAssetManager.Build(param->game_root_dir);
