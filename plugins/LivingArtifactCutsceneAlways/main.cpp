@@ -13,6 +13,7 @@
 #define PLUGIN_VERSION_PATCH 0
 
 extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginInitializeParam * param) {
+    InitLogger(false);
     _MESSAGE("Plugin initialized");
     _MESSAGE("Game version: %s", param->game_version_string);
     _MESSAGE("Plugin dir: %s", param->plugins_dir);
