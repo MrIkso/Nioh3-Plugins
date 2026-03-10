@@ -25,19 +25,20 @@ std::shared_ptr<spdlog::logger> globalLogger = []()->auto {
 
 
 void _MESSAGE(const char* fmt, ...) {
-    if (fmt == nullptr) {
+    if (fmt == nullptr) 
         return;
-    }
 
     va_list args;
     va_start(args, fmt);
-    auto len = vsnprintf(nullptr, 0, fmt, args);
-    if (len <= 0) {
+
+    int len = vsnprintf(nullptr, 0, fmt, args);
+    va_end(args);
+
+    if (len <= 0) 
         return;
-    }
-    std::string buffer;
-    buffer.resize(len + 1, 0);
-    vsnprintf(buffer.data(), buffer.size(), fmt, args);
+    std::string buffer(len, '\0');
+    va_start(args, fmt);
+    vsnprintf(buffer.data(), len + 1, fmt, args);
     va_end(args);
 
     if (globalLogger) {
