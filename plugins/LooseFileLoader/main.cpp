@@ -29,11 +29,15 @@ namespace {
 using namespace LooseFileLoader;
 // cmake --build build --config Release --target LooseFileLoader
 extern "C" __declspec(dllexport) bool nioh3_plugin_initialize(const Nioh3PluginInitializeParam* param) {
+    auto iniPath = GetIniPath(param);
+    g_enableConsole = ReadIniBool(iniPath, PLUGIN_NAME, "EnableConsole", false);
+
+    InitLogger(g_enableConsole);
+
     _MESSAGE("Plugin initialized");
     _MESSAGE("Game version: %s", param->game_version_string);
     _MESSAGE("Plugin dir: %s", param->plugins_dir);
 
-    auto iniPath = GetIniPath(param);
     g_enableAssetLoadingLog = ReadIniBool(iniPath, PLUGIN_NAME, "EnableAssetLoadingLog", false);
     _MESSAGE("EnableAssetLoadingLog: %d", g_enableAssetLoadingLog ? 1 : 0);
 

@@ -14,6 +14,7 @@ namespace LooseFileLoader {
 
 inline bool g_enableAssetLoadingLog = false;
 inline bool g_disableStreamingLoading = false;
+inline bool g_enableConsole = false;
 
 #pragma pack(push, 1)
 struct RDBDescriptor {
