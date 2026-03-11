@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <string>
+#include <set>
 
 #define PLUGIN_NAME "LooseFileLoader"
 #define PLUGIN_VERSION_MAJOR 1
@@ -15,6 +16,8 @@ namespace LooseFileLoader {
 inline bool g_enableAssetLoadingLog = false;
 inline bool g_disableStreamingLoading = false;
 inline bool g_enableConsole = false;
+inline bool g_enableLoggerFilters = false;
+inline std::set<std::string> g_logFilters;
 
 #pragma pack(push, 1)
 struct RDBDescriptor {
