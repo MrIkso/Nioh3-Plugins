@@ -1,52 +1,57 @@
 #include "LogUtils.h"
 #include "FileUtils.h"
+#include "ConfigUtils.h"
 #include <cstdarg>
 #include <memory>
 #include <filesystem>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <iostream>
-#include <vector>
+
 
 #pragma warning(disable: 4073)	// yes this is intentional
 #pragma init_seg(lib)
-
-std::shared_ptr<spdlog::logger> globalLogger = nullptr;
-
-void InitLogger(bool enableConsole) {
-    if (globalLogger) 
-        return;
-
-    std::vector<spdlog::sink_ptr> sinks;
-
-    auto exeDir = FileUtils::GetExecutableDirectory();
-    auto logFilePath = exeDir / "logs" / (FileUtils::GetCurrentModuleName() + ".log");
-    sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.string(), true));
-
-    if (enableConsole) {
-        if (AllocConsole()) {
-            FILE* fDummy;
-            freopen_s(&fDummy, "CONOUT$", "w", stdout);
-            freopen_s(&fDummy, "CONOUT$", "w", stderr);
-            freopen_s(&fDummy, "CONIN$", "r", stdin);
-            std::clog.clear();
-            std::cout.clear();
+namespace {
+    void EnsureConsoleOpen() {
+        if (GetConsoleWindow() != nullptr) {
+            return;
         }
 
-        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        sinks.push_back(console_sink);
+        if (!AllocConsole()) {
+            return;
+        }
+
+        FILE* fp = nullptr;
+        freopen_s(&fp, "CONIN$", "r", stdin);
+        freopen_s(&fp, "CONOUT$", "w", stdout);
+        freopen_s(&fp, "CONOUT$", "w", stderr);
+        SetConsoleOutputCP(CP_UTF8);
+        SetConsoleTitleA("LooseFileLoader Console");
     }
-
-    globalLogger = std::make_shared<spdlog::logger>("multi_logger", sinks.begin(), sinks.end());
-
-    globalLogger->set_level(spdlog::level::info);
-    globalLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%l][%t] %v");
-    globalLogger->flush_on(spdlog::level::info);
-
-    spdlog::set_default_logger(globalLogger);
-    globalLogger->info("Logger initialized (Console: {})", enableConsole ? "YES" : "NO");
 }
+
+std::shared_ptr<spdlog::logger> globalLogger = []()->auto {
+    auto exeDir = FileUtils::GetExecutableDirectory();
+    auto logFilePath = exeDir / "logs" / (FileUtils::GetCurrentModuleName() + ".log");
+
+    bool enableConsole = ConfigUtils::ReadInt(FileUtils::GetCurrentModuleName(), "EnableConsole", 0) != 0;
+
+    std::vector<spdlog::sink_ptr> sinks = {
+        std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.string(), true)
+    };
+    if (enableConsole) {
+        EnsureConsoleOpen();
+        sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+    }
+    auto logger = std::make_shared<spdlog::logger>("multi_logger", sinks.begin(), sinks.end());
+    logger->set_level(spdlog::level::info);
+    logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%l][%t] %v");
+    logger->flush_on(spdlog::level::info);
+
+    spdlog::set_default_logger(logger);
+    logger->info("===============================================================");
+    return logger;
+}();
 
 
 void _MESSAGE(const char* fmt, ...) {

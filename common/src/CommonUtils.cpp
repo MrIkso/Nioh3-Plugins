@@ -1,9 +1,21 @@
 #include "CommonUtils.h"
+#include <sstream>
 #include <windows.h>
 #include <LogUtils.h>
 
 
 namespace CommonUtils {
+	std::vector<std::string> Split(std::string_view s, char delimiter) {
+		std::vector<std::string> out;
+		std::stringstream ss{s.data()};
+		std::string item;
+		while (std::getline(ss, item, delimiter)) {
+			out.emplace_back(std::move(item));
+		}
+
+		return out;
+	}
+
 	std::string ToLowerAscii(std::string_view s) {
 		std::string out(s);
 		for (char& ch : out) {

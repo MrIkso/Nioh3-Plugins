@@ -151,25 +151,13 @@ namespace LooseFileLoader {
 				const auto typeId = gameAsset->typeInfoKtid;
 				const std::string typeName = assetHandler ? assetHandler->GetTypeName() : "Unknown";
 
-				if (g_enableAssetLoadingLog) {
-					bool shouldLog = true;
-					if (g_enableLoggerFilters) {
-						if (g_logFilters.size() == 0) {
-							shouldLog = true;
-						}
-						else {
-							shouldLog = g_logFilters.contains(typeName);
-						}
-					}
-
-					if (shouldLog) {
-						_MESSAGE("\tLoading asset: 0x%08X | Type: %s (0x%08X) | Size: %s",
+				if (g_enableAssetLoadingLog && (g_logFilters.empty() || g_logFilters.contains(typeName))) {
+					_MESSAGE("\tLoading asset: 0x%08X | Type: %s (0x%08X) | Size: %s",
 							fileKtid,
 							typeName.c_str(),
 							typeId,
 							FormatDiskSize(assetFileSize).c_str()
-						);
-					}
+					);
 				}
 				// auto resId = archiveManager->assetManager.assetIdManager.GetResIdByFileKtid(fileKtid);
 				// _MESSAGE("ResId: %u, fileKtid: %08X, typeId: %08X", resId, fileKtid, typeId);
